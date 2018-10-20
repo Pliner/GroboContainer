@@ -11,7 +11,7 @@ namespace GroboContainer.New
     {
         public Implementation(Type implementationType)
         {
-            this.ObjectType = implementationType;
+            ObjectType = implementationType;
         }
 
         private IClassFactory ChooseFactory(ICreationContext creationContext, Type[] parameterTypes)
@@ -25,27 +25,10 @@ namespace GroboContainer.New
                 return noArgumentsFactory;
             }
 
-            IClassFactory factory;
-            if ((factory = TryGetFactory(parameterTypes)) == null)
-                lock (configurationLock)
-                    if ((factory = TryGetFactory(parameterTypes)) == null)
-                    {
-                        if (factories == null)
-                            factories = new ConcurrentDictionary<Type[], IClassFactory>(TypeArrayEqualityComparer.Instance);
-                        factories[parameterTypes] = factory = creationContext.BuildFactory(ObjectType, parameterTypes);
-                    }
-            return factory;
-        }
-
-        private IClassFactory TryGetFactory(Type[] types)
-        {
-            return factories != null && factories.TryGetValue(types, out var classFactory)
-                       ? classFactory
-                       : null;
+            return creationContext.BuildFactory(ObjectType, parameterTypes);
         }
 
         private readonly object configurationLock = new object();
-        private volatile ConcurrentDictionary<Type[], IClassFactory> factories;
         private volatile IClassFactory noArgumentsFactory;
 
         #region IImplementation Members
@@ -59,20 +42,5 @@ namespace GroboContainer.New
         }
 
         #endregion
-
-        internal sealed class TypeArrayEqualityComparer : IEqualityComparer<Type[]>
-        {
-            public static readonly TypeArrayEqualityComparer Instance = new TypeArrayEqualityComparer();
-
-            public bool Equals(Type[] x, Type[] y)
-            {
-                return StructuralComparisons.StructuralEqualityComparer.Equals(x, y);
-            }
-
-            public int GetHashCode(Type[] x)
-            {
-                return StructuralComparisons.StructuralEqualityComparer.GetHashCode(x);
-            }
-        }
     }
 }
